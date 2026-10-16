@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BodyTrack">
+    <title>Calculadora y Registro de Grasa Corporal e IMC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    },
+                    colors: {
+                        ios: {
+                            bg: '#000000',
+                            card: '#1C1C1E',
+                            card2: '#2C2C2E',
+                            border: '#38383A',
+                            blue: '#0A84FF',
+                            green: '#30D158',
+                            orange: '#FF9F0A',
+                            red: '#FF453A',
+                            purple: '#BF5AF2',
+                            teal: '#64D2FF',
+                            gray: '#8E8E93'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos nativos tipo iOS */
+        body {
+            -webkit-tap-highlight-color: transparent;
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+            overscroll-behavior-y: none;
+        }
+        /* Ocultar flechas de inputs numéricos */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        /* Sliders personalizados estilo iOS */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(142, 142, 147, 0.28);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            margin-top: -8px;
+            border: 2px solid #0A84FF;
+            transition: transform 0.1s ease;
+        }
+        input[type=range]:active::-webkit-slider-thumb {
+            transform: scale(1.15);
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .safe-bottom {
+            padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+        }
+        .tabbar-safe {
+            padding-bottom: env(safe-area-inset-bottom, 12px);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-ios-bg text-slate-900 dark:text-white min-h-screen transition-colors duration-200 selection:bg-ios-blue selection:text-white">
+
+    <!-- Contenedor Principal (Tamaño iPhone centrado en pantallas grandes) -->
+    <div class="max-w-md mx-auto min-h-screen relative flex flex-col safe-bottom">
+
+        <!-- Cabecera Fija iOS -->
+        <header class="sticky top-0 z-30 bg-slate-100/80 dark:bg-ios-bg/80 ios-blur border-b border-slate-200/70 dark:border-ios-border/60 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-ios-blue to-ios-teal flex items-center justify-center text-white shadow-sm">
+                    <i class="ph-fill ph-heartbeat text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <h1 class="text-base font-bold tracking-tight leading-none">BodyTrack</h1>
+                        <span id="sync-badge" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-500">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Sincronizado
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-ios-gray mt-0.5">% Grasa Corporal & IMC (ACE)</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="openQuickGuideModal()" class="w-9 h-9 rounded-full bg-white dark:bg-ios-card border border-slate-200 dark:border-ios-border flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition" title="Cómo medir">
+                    <i class="ph ph-ruler text-lg"></i>
+                </button>
+                <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-white dark:bg-ios-card border border-slate-200 dark:border-ios-border flex items-center justify-center text-slate-600 dark:text-slate-300 active:scale-95 transition" title="Cambiar tema">
+                    <i id="theme-icon" class="ph ph-sun text-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Notificación Flotante (Toast) -->
+        <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 -translate-y-2 transition-all duration-300 max-w-[90%] w-auto">
+            <div class="bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold ios-blur">
+                <i id="toast-icon" class="ph-fill ph-check-circle text-emerald-400 dark:text-emerald-600 text-base"></i>
+                <span id="toast-msg">Medición guardada</span>
+            </div>
+        </div>
+
+        <!-- ==================== PESTAÑA 1: CALCULAR Y REGISTRAR ==================== -->
+        <main id="tab-calc" class="flex-1 px-4 pt-4 space-y-4">
+
+            <!-- Selector de Método (Segmented Control iOS) -->
+            <div class="bg-white dark:bg-ios-card p-3 rounded-2xl border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-ios-gray">Método de Cálculo</span>
+                    <span id="method-precision-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-ios-blue/15 text-ios-blue">
+                        MÁS PRECISO (±3-4%)
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 p-1 bg-slate-100 dark:bg-ios-bg rounded-xl">
+                    <button id="btn-method-navy" onclick="setMethod('navy')" class="py-2 px-3 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-ios-card2 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5">
+                        <i class="ph-fill ph-shield-star text-ios-blue"></i>
+                        Marina EE.UU.
+                    </button>
+                    <button id="btn-method-bmi" onclick="setMethod('bmi')" class="py-2 px-3 rounded-lg text-xs font-semibold transition-all text-slate-500 dark:text-ios-gray flex items-center justify-center gap-1.5">
+                        <i class="ph ph-scales"></i>
+                        Por IMC
+                    </button>
+                </div>
+                <p id="method-helper-text" class="text-[11px] text-slate-500 dark:text-ios-gray leading-relaxed">
+                    Mide con cinta métrica: <strong>cintura</strong> al nivel del ombligo y <strong>cuello</strong> justo debajo de la laringe.
+                </p>
+            </div>
+
+            <!-- TARJETA PRINCIPAL DE RESULTADOS EN TIEMPO REAL -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-5 border border-slate-200/80 dark:border-ios-border/60 shadow-sm relative overflow-hidden">
+                <!-- Decoración sutil de fondo -->
+                <div id="result-glow" class=" -right-10 -top-10 w-36 h-36 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none"></div>
+
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-ios-gray block">
+                            Grasa Corporal Estimada
+                        </span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="res-bf" class="text-5xl font-extrabold tracking-tight tabular-nums">14.7%</span>
+                        </div>
+                    </div>
+                    <div class="text-right flex flex-col items-end">
+                        <span id="res-category-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            EN FORMA
+                        </span>
+                        <span id="res-diff-last" class="text-[11px] text-slate-400 dark:text-ios-gray mt-1.5 font-medium">
+                            Tiempo real
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 3 Métricas Secundarias (Masa Grasa, Masa Magra, IMC) -->
+                <div class="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-slate-100 dark:border-ios-border/60">
+                    <div class="bg-slate-50 dark:bg-ios-bg/60 p-3 rounded-2xl">
+                        <span class="text-[10px] font-semibold uppercase text-slate-400 dark:text-ios-gray block">Masa Grasa</span>
+                        <span id="res-fat-mass" class="text-base font-bold tabular-nums mt-0.5 block text-amber-500">11.2 kg</span>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-ios-bg/60 p-3 rounded-2xl">
+                        <span class="text-[10px] font-semibold uppercase text-slate-400 dark:text-ios-gray block">Masa Magra</span>
+                        <span id="res-lean-mass" class="text-base font-bold tabular-nums mt-0.5 block text-ios-blue">64.8 kg</span>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-ios-bg/60 p-3 rounded-2xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-semibold uppercase text-slate-400 dark:text-ios-gray">IMC</span>
+                            <span id="res-bmi-tag" class="text-[9px] font-bold text-emerald-500">Normal</span>
+                        </div>
+                        <span id="res-bmi" class="text-base font-bold tabular-nums mt-0.5 block">22.4</span>
+                    </div>
+                </div>
+
+                <!-- Barra Visual y Tabla de Rangos de Referencia (ACE) -->
+                <div class="mt-4 pt-3.5 border-t border-slate-100 dark:border-ios-border/60">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 dark:text-ios-gray mb-2">
+                        <span>RANGOS DE REFERENCIA (ACE)</span>
+                        <span id="ace-sex-label">Hombres</span>
+                    </div>
+
+                    <!-- Barra termómetro con marcador -->
+                    <div class="relative h-2.5 w-full rounded-full overflow-hidden flex mb-4 bg-slate-200 dark:bg-ios-card2">
+                        <div class="h-full bg-sky-400" style="width: 14%"></div>
+                        <div class="h-full bg-teal-400" style="width: 24%"></div>
+                        <div class="h-full bg-emerald-500" style="width: 18%"></div>
+                        <div class="h-full bg-amber-400" style="width: 24%"></div>
+                        <div class="h-full bg-rose-500" style="width: 20%"></div>
+                    </div>
+                    <div class="relative -mt-6 mb-3 h-4">
+                        <div id="ace-marker" class="absolute top-0 -translate-x-1/2 transition-all duration-300" style="left: 48%;">
+                            <div class="w-4 h-4 rounded-full bg-white border-2 border-slate-900 shadow-md"></div>
+                        </div>
+                    </div>
+
+                    <!-- Lista interactiva de rangos como en la captura -->
+                    <div id="ace-ranges-list" class="grid grid-cols-5 gap-1 text-center">
+                        <!-- Rellenado dinámicamente según Hombre/Mujer y categoría activa -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTROLES DE MEDIDAS CORPORALES -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-4 border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-4">
+                
+                <!-- Selector de Sexo Biológico -->
+                <div>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-ios-gray block mb-2">
+                        Sexo Biológico
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btn-sex-male" onclick="setSex('male')" class="py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-2 bg-ios-blue text-white border-ios-blue shadow-sm">
+                            <i class="ph-bold ph-gender-male text-base"></i> Hombre
+                        </button>
+                        <button id="btn-sex-female" onclick="setSex('female')" class="py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-2 bg-slate-50 dark:bg-ios-card2 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-ios-border">
+                            <i class="ph-bold ph-gender-female text-base"></i> Mujer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Control 1: PESO (kg) -->
+                <div class="p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 border border-slate-200/60 dark:border-ios-border/40 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-ios-blue/15 text-ios-blue flex items-center justify-center">
+                                <i class="ph-fill ph-scales"></i>
+                            </div>
+                            <span class="text-sm font-semibold">Peso</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="stepValue('weight', -0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">−</button>
+                            <div class="relative flex items-center">
+                                <input id="input-weight" type="number" step="0.1" min="30" max="250" value="76" oninput="syncInput('weight', this.value)" class="w-16 text-center font-bold text-base bg-white dark:bg-ios-card2 py-1 rounded-lg border border-slate-200 dark:border-ios-border focus:outline-none focus:border-ios-blue tabular-nums">
+                                <span class="text-xs text-slate-400 dark:text-ios-gray ml-1 font-medium">kg</span>
+                            </div>
+                            <button onclick="stepValue('weight', 0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">+</button>
+                        </div>
+                    </div>
+                    <input id="slider-weight" type="range" min="40" max="150" step="0.5" value="76" oninput="syncInput('weight', this.value)" class="w-full">
+                </div>
+
+                <!-- Control 2: ALTURA (cm) -->
+                <div class="p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 border border-slate-200/60 dark:border-ios-border/40 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-500 flex items-center justify-center">
+                                <i class="ph-fill ph-arrows-out-line-vertical"></i>
+                            </div>
+                            <span class="text-sm font-semibold">Altura</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="stepValue('height', -1)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">−</button>
+                            <div class="relative flex items-center">
+                                <input id="input-height" type="number" step="1" min="120" max="230" value="184" oninput="syncInput('height', this.value)" class="w-16 text-center font-bold text-base bg-white dark:bg-ios-card2 py-1 rounded-lg border border-slate-200 dark:border-ios-border focus:outline-none focus:border-ios-blue tabular-nums">
+                                <span class="text-xs text-slate-400 dark:text-ios-gray ml-1 font-medium">cm</span>
+                            </div>
+                            <button onclick="stepValue('height', 1)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">+</button>
+                        </div>
+                    </div>
+                    <input id="slider-height" type="range" min="140" max="210" step="1" value="184" oninput="syncInput('height', this.value)" class="w-full">
+                </div>
+
+                <!-- Controles exclusivos Método Marina EE.UU. -->
+                <div id="navy-fields" class="space-y-4">
+                    <!-- Control 3: CINTURA (cm) -->
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 border border-slate-200/60 dark:border-ios-border/40 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+                                        <i class="ph-fill ph-ruler"></i>
+                                    </div>
+                                    <span class="text-sm font-semibold">Cintura</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400 dark:text-ios-gray block mt-0.5 pl-9">Al nivel del ombligo (relajado)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="stepValue('waist', -0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">−</button>
+                                <div class="relative flex items-center">
+                                    <input id="input-waist" type="number" step="0.5" min="45" max="180" value="85" oninput="syncInput('waist', this.value)" class="w-16 text-center font-bold text-base bg-white dark:bg-ios-card2 py-1 rounded-lg border border-slate-200 dark:border-ios-border focus:outline-none focus:border-ios-blue tabular-nums">
+                                    <span class="text-xs text-slate-400 dark:text-ios-gray ml-1 font-medium">cm</span>
+                                </div>
+                                <button onclick="stepValue('waist', 0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">+</button>
+                            </div>
+                        </div>
+                        <input id="slider-waist" type="range" min="55" max="140" step="0.5" value="85" oninput="syncInput('waist', this.value)" class="w-full">
+                    </div>
+
+                    <!-- Control 4: CUELLO (cm) -->
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 border border-slate-200/60 dark:border-ios-border/40 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                                        <i class="ph-fill ph-circle-dashed"></i>
+                                    </div>
+                                    <span class="text-sm font-semibold">Cuello</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400 dark:text-ios-gray block mt-0.5 pl-9">Debajo de la laringe</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="stepValue('neck', -0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">−</button>
+                                <div class="relative flex items-center">
+                                    <input id="input-neck" type="number" step="0.5" min="25" max="65" value="39" oninput="syncInput('neck', this.value)" class="w-16 text-center font-bold text-base bg-white dark:bg-ios-card2 py-1 rounded-lg border border-slate-200 dark:border-ios-border focus:outline-none focus:border-ios-blue tabular-nums">
+                                    <span class="text-xs text-slate-400 dark:text-ios-gray ml-1 font-medium">cm</span>
+                                </div>
+                                <button onclick="stepValue('neck', 0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">+</button>
+                            </div>
+                        </div>
+                        <input id="slider-neck" type="range" min="28" max="55" step="0.5" value="39" oninput="syncInput('neck', this.value)" class="w-full">
+                    </div>
+
+                    <!-- Control 5: CADERA (cm) - Solo Mujeres en Método Marina -->
+                    <div id="hip-field" class="hidden p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 border border-slate-200/60 dark:border-ios-border/40 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-500 flex items-center justify-center">
+                                        <i class="ph-fill ph-arrows-Out-line-horizontal"></i>
+                                    </div>
+                                    <span class="text-sm font-semibold">Cadera</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400 dark:text-ios-gray block mt-0.5 pl-9">En el punto más ancho</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="stepValue('hip', -0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">−</button>
+                                <div class="relative flex items-center">
+                                    <input id="input-hip" type="number" step="0.5" min="60" max="170" value="96" oninput="syncInput('hip', this.value)" class="w-16 text-center font-bold text-base bg-white dark:bg-ios-card2 py-1 rounded-lg border border-slate-200 dark:border-ios-border focus:outline-none focus:border-ios-blue tabular-nums">
+                                    <span class="text-xs text-slate-400 dark:text-ios-gray ml-1 font-medium">cm</span>
+                                </div>
+                                <button onclick="stepValue('hip', 0.5)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">+</button>
+                            </div>
+                        </div>
+                        <input id="slider-hip" type="range" min="70" max="145" step="0.5" value="96" oninput="syncInput('hip', this.value)" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Control exclusivo Método IMC: EDAD (años) -->
+                <div id="bmi-age-field" class="hidden p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 border border-slate-200/60 dark:border-ios-border/40 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-lg bg-teal-500/15 text-teal-500 flex items-center justify-center">
+                                    <i class="ph-fill ph-calendar-blank"></i>
+                                </div>
+                                <span class="text-sm font-semibold">Edad</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 dark:text-ios-gray block mt-0.5 pl-9">Para estimación por IMC (Deurenberg)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="stepValue('age', -1)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">−</button>
+                            <div class="relative flex items-center">
+                                <input id="input-age" type="number" step="1" min="15" max="99" value="32" oninput="syncInput('age', this.value)" class="w-16 text-center font-bold text-base bg-white dark:bg-ios-card2 py-1 rounded-lg border border-slate-200 dark:border-ios-border focus:outline-none focus:border-ios-blue tabular-nums">
+                                <span class="text-xs text-slate-400 dark:text-ios-gray ml-1 font-medium">años</span>
+                            </div>
+                            <button onclick="stepValue('age', 1)" class="w-8 h-8 rounded-lg bg-white dark:bg-ios-card2 border border-slate-200 dark:border-ios-border flex items-center justify-center active:scale-90 transition font-bold text-base">+</button>
+                        </div>
+                    </div>
+                    <input id="slider-age" type="range" min="18" max="85" step="1" value="32" oninput="syncInput('age', this.value)" class="w-full">
+                </div>
+
+            </div>
+
+            <!-- SECCIÓN DE GUARDAR REGISTRO CON FECHA -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-4 border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-ios-gray">Guardar en el Registro</span>
+                    <button onclick="setTodayDate()" class="text-[11px] font-semibold text-ios-blue active:opacity-70">Hoy</button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div class="flex items-center gap-2 bg-slate-50 dark:bg-ios-bg/60 px-3 py-2.5 rounded-xl border border-slate-200/60 dark:border-ios-border/40">
+                        <i class="ph ph-calendar text-ios-blue text-lg"></i>
+                        <input id="record-date" type="date" class="bg-transparent text-xs font-semibold w-full focus:outline-none">
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-50 dark:bg-ios-bg/60 px-3 py-2.5 rounded-xl border border-slate-200/60 dark:border-ios-border/40">
+                        <i class="ph ph-note-pencil text-slate-400 text-lg"></i>
+                        <input id="record-note" type="text" placeholder="Nota opcional (ej. en ayunas)" maxlength="40" class="bg-transparent text-xs w-full focus:outline-none placeholder:text-slate-400">
+                    </div>
+                </div>
+
+                <button onclick="saveMeasurement()" class="w-full py-3.5 px-4 rounded-2xl bg-ios-blue hover:bg-blue-600 active:scale-[0.98] transition-all text-white font-bold text-sm shadow-lg shadow-ios-blue/25 flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-floppy-disk text-lg"></i>
+                    Registrar Medición (<span id="btn-save-preview">14.7% · 22.4 IMC</span>)
+                </button>
+            </div>
+
+        </main>
+
+        <!-- ==================== PESTAÑA 2: EVOLUCIÓN E HISTORIAL ==================== -->
+        <main id="tab-history" class="hidden flex-1 px-4 pt-4 space-y-4">
+
+            <!-- Resumen de Progreso -->
+            <div class="grid grid-cols-3 gap-2.5">
+                <div class="bg-white dark:bg-ios-card p-3.5 rounded-2xl border border-slate-200/80 dark:border-ios-border/60 shadow-sm">
+                    <span class="text-[10px] font-semibold uppercase text-slate-400 dark:text-ios-gray block">Último % GC</span>
+                    <span id="stat-last-bf" class="text-lg font-extrabold tabular-nums mt-0.5 block">—</span>
+                    <span id="stat-diff-bf" class="text-[10px] font-semibold text-slate-400 block mt-0.5">Sin datos</span>
+                </div>
+                <div class="bg-white dark:bg-ios-card p-3.5 rounded-2xl border border-slate-200/80 dark:border-ios-border/60 shadow-sm">
+                    <span class="text-[10px] font-semibold uppercase text-slate-400 dark:text-ios-gray block">Último IMC</span>
+                    <span id="stat-last-bmi" class="text-lg font-extrabold tabular-nums mt-0.5 block">—</span>
+                    <span id="stat-diff-bmi" class="text-[10px] font-semibold text-slate-400 block mt-0.5">Sin datos</span>
+                </div>
+                <div class="bg-white dark:bg-ios-card p-3.5 rounded-2xl border border-slate-200/80 dark:border-ios-border/60 shadow-sm">
+                    <span class="text-[10px] font-semibold uppercase text-slate-400 dark:text-ios-gray block">Último Peso</span>
+                    <span id="stat-last-weight" class="text-lg font-extrabold tabular-nums mt-0.5 block">—</span>
+                    <span id="stat-total-records" class="text-[10px] font-semibold text-ios-blue block mt-0.5">0 registros</span>
+                </div>
+            </div>
+
+            <!-- Tarjeta del Gráfico de Evolución -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-4 border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-bold">Curva de Evolución</h2>
+                        <p class="text-[11px] text-slate-400 dark:text-ios-gray">Histórico por fecha</p>
+                    </div>
+                    <!-- Selector de métrica del gráfico -->
+                    <div class="inline-flex p-1 bg-slate-100 dark:bg-ios-bg rounded-xl text-[11px] font-semibold">
+                        <button id="chart-btn-bf" onclick="setChartMetric('bf')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-ios-card2 text-ios-blue shadow-sm transition">% Grasa</button>
+                        <button id="chart-btn-bmi" onclick="setChartMetric('bmi')" class="px-2.5 py-1 rounded-lg text-slate-500 dark:text-ios-gray transition">IMC</button>
+                        <button id="chart-btn-weight" onclick="setChartMetric('weight')" class="px-2.5 py-1 rounded-lg text-slate-500 dark:text-ios-gray transition">Peso</button>
+                    </div>
+                </div>
+
+                <!-- Contenedor SVG del Gráfico -->
+                <div id="chart-container" class="w-full h-44 bg-slate-50 dark:bg-ios-bg/50 rounded-2xl p-2 flex items-center justify-center relative overflow-hidden">
+                    <!-- Renderizado dinámico SVG -->
+                </div>
+            </div>
+
+            <!-- Lista de Registros Guardados -->
+            <div class="space-y-2.5">
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-ios-gray">Historial de Mediciones</h3>
+                    <div class="flex items-center gap-3">
+                        <button onclick="exportCSV()" class="text-xs font-semibold text-ios-blue flex items-center gap-1 active:opacity-70">
+                            <i class="ph ph-download-simple"></i> Exportar CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div id="history-list" class="space-y-2.5">
+                    <!-- Elementos generados por JS -->
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ==================== PESTAÑA 3: GUÍA Y DATOS ==================== -->
+        <main id="tab-guide" class="hidden flex-1 px-4 pt-4 space-y-4">
+
+            <!-- Cómo medir correctamente -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-5 border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-ios-blue/15 text-ios-blue flex items-center justify-center">
+                        <i class="ph-fill ph-ruler text-lg"></i>
+                    </div>
+                    <h2 class="text-base font-bold">Cómo medir correctamente</h2>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-ios-gray leading-relaxed">
+                    Desarrollado por el Departamento de Defensa de EE.UU., este método estima la grasa corporal mediante perímetros corporales con cinta métrica (margen de error de ±3-4%).
+                </p>
+                <div class="space-y-2.5 pt-1">
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 flex gap-3 items-start">
+                        <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <div class="text-xs">
+                            <strong class="block text-slate-800 dark:text-white">Cintura (Hombres y Mujeres)</strong>
+                            <span class="text-slate-500 dark:text-ios-gray">Mide al nivel del ombligo, en espiración normal (sin meter tripa).</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 flex gap-3 items-start">
+                        <span class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-500 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <div class="text-xs">
+                            <strong class="block text-slate-800 dark:text-white">Cuello (Hombres y Mujeres)</strong>
+                            <span class="text-slate-500 dark:text-ios-gray">Justo por debajo de la laringe (nuez de Adán), con la cinta ligeramente inclinada hacia abajo al frente.</span>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-ios-bg/60 flex gap-3 items-start">
+                        <span class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-500 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                        <div class="text-xs">
+                            <strong class="block text-slate-800 dark:text-white">Cadera (Solo Mujeres)</strong>
+                            <span class="text-slate-500 dark:text-ios-gray">En el punto de mayor circunferencia, manteniendo los pies juntos.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla Oficial de Rangos ACE -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-5 border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-3">
+                <h2 class="text-base font-bold">Rangos de Referencia (ACE)</h2>
+                <p class="text-xs text-slate-500 dark:text-ios-gray">
+                    Clasificación según el <em>American Council on Exercise</em>:
+                </p>
+                <div class="overflow-hidden rounded-2xl border border-slate-200 dark:border-ios-border">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 dark:bg-ios-card2 text-slate-500 dark:text-ios-gray uppercase text-[10px]">
+                            <tr>
+                                <th class="py-2.5 px-3">Categoría</th>
+                                <th class="py-2.5 px-3">Hombres</th>
+                                <th class="py-2.5 px-3">Mujeres</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-ios-border/60 font-medium">
+                            <tr>
+                                <td class="py-2.5 px-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-sky-400"></span>Grasa esencial</td>
+                                <td class="py-2.5 px-3 tabular-nums">2 – 5%</td>
+                                <td class="py-2.5 px-3 tabular-nums">10 – 13%</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-teal-400"></span>Atlético</td>
+                                <td class="py-2.5 px-3 tabular-nums">6 – 13%</td>
+                                <td class="py-2.5 px-3 tabular-nums">14 – 20%</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>En forma</td>
+                                <td class="py-2.5 px-3 tabular-nums">14 – 17%</td>
+                                <td class="py-2.5 px-3 tabular-nums">21 – 24%</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-400"></span>Promedio</td>
+                                <td class="py-2.5 px-3 tabular-nums">18 – 24%</td>
+                                <td class="py-2.5 px-3 tabular-nums">25 – 31%</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-rose-500"></span>Obesidad</td>
+                                <td class="py-2.5 px-3 tabular-nums">&gt; 25%</td>
+                                <td class="py-2.5 px-3 tabular-nums">&gt; 32%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Grasa Corporal vs IMC -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-5 border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-2">
+                <h2 class="text-base font-bold">Grasa Corporal vs. IMC</h2>
+                <p class="text-xs text-slate-500 dark:text-ios-gray leading-relaxed">
+                    El <strong>IMC (Índice de Masa Corporal)</strong> solo mide el peso relativo a la altura y no distingue músculo de grasa. Una persona con buena masa muscular puede tener un IMC de "sobrepeso" con un % de grasa óptimo. Llevar el registro de ambos indicadores te permite ver tu recomposición corporal real.
+                </p>
+            </div>
+
+            <!-- Gestión de Datos e Instalación en iPhone -->
+            <div class="bg-white dark:bg-ios-card rounded-3xl p-5 border border-slate-200/80 dark:border-ios-border/60 shadow-sm space-y-3">
+                <h2 class="text-base font-bold">Usar como App en iPhone</h2>
+                <p class="text-xs text-slate-500 dark:text-ios-gray leading-relaxed">
+                    En Safari de tu iPhone, pulsa el botón <strong>Compartir</strong> <i class="ph ph-export inline"></i> y selecciona <strong>"Añadir a pantalla de inicio"</strong> para abrirla a pantalla completa como una app nativa.
+                </p>
+                <div class="pt-2 flex flex-wrap gap-2">
+                    <button onclick="exportCSV()" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-ios-card2 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition">
+                        <i class="ph ph-file-csv text-base text-ios-blue"></i> Descargar CSV
+                    </button>
+                    <button onclick="loadDemoHistory()" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-ios-card2 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition">
+                        <i class="ph ph-magic-wand text-base text-purple-400"></i> Cargar Ejemplo
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ==================== BARRA DE NAVEGACIÓN INFERIOR iOS ==================== -->
+        <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/85 dark:bg-ios-card/85 ios-blur border-t border-slate-200/80 dark:border-ios-border/60 tabbar-safe">
+            <div class="max-w-md mx-auto grid grid-cols-3 px-2 pt-1.5 pb-1">
+                <button id="nav-calc" onclick="switchTab('calc')" class="flex flex-col items-center justify-center py-1 text-ios-blue transition">
+                    <i class="ph-fill ph-calculator text-2xl"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Calcular</span>
+                </button>
+                <button id="nav-history" onclick="switchTab('history')" class="flex flex-col items-center justify-center py-1 text-slate-400 dark:text-ios-gray transition relative">
+                    <i class="ph ph-chart-line-up text-2xl"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Evolución</span>
+                    <span id="nav-badge-count" class="hidden absolute top-0.5 right-8 min-w-[16px] h-4 px-1 rounded-full bg-ios-blue text-white text-[10px] font-bold flex items-center justify-center">0</span>
+                </button>
+                <button id="nav-guide" onclick="switchTab('guide')" class="flex flex-col items-center justify-center py-1 text-slate-400 dark:text-ios-gray transition">
+                    <i class="ph ph-book-open-text text-2xl"></i>
+                    <span class="text-[10px] font-semibold mt-0.5">Guía ACE</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- ==================== MODAL RÁPIDO DE CÓMO MEDIR ==================== -->
+        <div id="guide-modal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/60 ios-blur p-4">
+            <div class="bg-white dark:bg-ios-card w-full max-w-sm rounded-3xl p-5 border border-slate-200 dark:border-ios-border shadow-2xl space-y-4 animate-fade-in">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold flex items-center gap-2">
+                        <i class="ph-fill ph-ruler text-ios-blue"></i> Guía Rápida de Medición
+                    </h3>
+                    <button onclick="closeQuickGuideModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-ios-card2 flex items-center justify-center text-slate-500">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+                <div class="space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
+                    <p>• <strong>Cintura:</strong> Al nivel del ombligo, en espiración normal (sin meter abdomen).</p>
+                    <p>• <strong>Cuello:</strong> Justo debajo de la laringe (nuez), cinta ligeramente inclinada hacia abajo al frente.</p>
+                    <p>• <strong>Cadera (Mujeres):</strong> En el punto más ancho con los pies juntos.</p>
+                </div>
+                <button onclick="closeQuickGuideModal()" class="w-full py-2.5 rounded-xl bg-ios-blue text-white font-semibold text-xs">
+                    Entendido
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== MODAL DE CONFIRMACIÓN DE BORRADO ==================== -->
+        <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 ios-blur p-4">
+            <div class="bg-white dark:bg-ios-card w-full max-w-xs rounded-3xl p-5 border border-slate-200 dark:border-ios-border shadow-2xl text-center space-y-4">
+                <div class="w-12 h-12 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center mx-auto">
+                    <i class="ph-fill ph-trash text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold">¿Eliminar medición?</h3>
+                    <p class="text-xs text-slate-500 dark:text-ios-gray mt-1">Esta entrada se borrará de tu historial de evolución.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="closeDeleteModal()" class="py-2.5 rounded-xl bg-slate-100 dark:bg-ios-card2 font-semibold text-xs">Cancelar</button>
+                    <button id="confirm-delete-btn" class="py-2.5 rounded-xl bg-rose-500 text-white font-semibold text-xs">Eliminar</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Lógica de la Aplicación + Sincronización en la Nube (Firestore) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==================== ESTADO GLOBAL DE LA APP ====================
+        // Valores iniciales idénticos a la imagen proporcionada (Hombre, 76kg, 184cm, Cintura 85cm, Cuello 39cm => 14.7% GC)
+        const state = {
+            method: 'navy',     // 'navy' | 'bmi'
+            sex: 'male',        // 'male' | 'female'
+            weight: 76,         // kg
+            height: 184,        // cm
+            waist: 85,          // cm
+            neck: 39,           // cm
+            hip: 96,            // cm (mujeres)
+            age: 32,            // años (método IMC)
+            chartMetric: 'bf',  // 'bf' | 'bmi' | 'weight'
+            records: [],        // Historial de mediciones
+            currentCalc: {
+                bf: 14.7,
+                fatMass: 11.2,
+                leanMass: 64.8,
+                bmi: 22.4,
+                category: 'En forma',
+                color: 'emerald'
+            }
+        };
+
+        // Rangos ACE (American Council on Exercise) como en el documento
+        const ACE_RANGES = {
+            male: [
+                { id: 'essential', label: 'Esencial', rangeText: '2-6%', min: 2, max: 6, color: 'sky' },
+                { id: 'athletic', label: 'Atlético', rangeText: '6-14%', min: 6, max: 14, color: 'teal' },
+                { id: 'fitness', label: 'En forma', rangeText: '14-18%', min: 14, max: 18, color: 'emerald' },
+                { id: 'average', label: 'Promedio', rangeText: '18-25%', min: 18, max: 25, color: 'amber' },
+                { id: 'obese', label: 'Obesidad', rangeText: '>25%', min: 25, max: 60, color: 'rose' }
+            ],
+            female: [
+                { id: 'essential', label: 'Esencial', rangeText: '10-13%', min: 10, max: 14, color: 'sky' },
+                { id: 'athletic', label: 'Atlético', rangeText: '14-20%', min: 14, max: 21, color: 'teal' },
+                { id: 'fitness', label: 'En forma', rangeText: '21-24%', min: 21, max: 25, color: 'emerald' },
+                { id: 'average', label: 'Promedio', rangeText: '25-31%', min: 25, max: 32, color: 'amber' },
+                { id: 'obese', label: 'Obesidad', rangeText: '>32%', min: 32, max: 65, color: 'rose' }
+            ]
+        };
+
+        // ==================== CONFIGURACIÓN CLOUD / FIRESTORE ====================
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bodytrack-ios-app';
+
+        async function initCloudStorage() {
+            try {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        currentUser = user;
+                        if (user) {
+                            subscribeToMeasurements(user.uid);
+                            loadUserPreferences(user.uid);
+                        }
+                    });
+                } else {
+                    setSyncStatus('Memoria activa');
+                }
+            } catch (err) {
+                console.warn("Modo sin conexión:", err);
+                setSyncStatus('Modo local');
+            }
+        }
+
+        function setSyncStatus(text) {
+            const badge = document.getElementById('sync-badge');
+            if (badge) {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ${text}`;
+            }
+        }
+
+        function subscribeToMeasurements(uid) {
+            if (!db || !uid) return;
+            const colRef = collection(db, 'artifacts', appId, 'users', uid, 'measurements');
+            onSnapshot(colRef, (snapshot) => {
+                const items = [];
+                snapshot.forEach(docSnap => {
+                    items.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                // Ordenar en memoria por fecha descendente y luego por timestamp
+                items.sort((a, b) => {
+                    if (b.date !== a.date) return b.date.localeCompare(a.date);
+                    return (b.createdAt || 0) - (a.createdAt || 0);
+                });
+                state.records = items;
+                updateHistoryUI();
+                calculateAll();
+            }, (error) => {
+                console.error("Error leyendo mediciones:", error);
+            });
+        }
+
+        function loadUserPreferences(uid) {
+            if (!db || !uid) return;
+            const prefRef = collection(db, 'artifacts', appId, 'users', uid, 'preferences');
+            onSnapshot(prefRef, (snapshot) => {
+                snapshot.forEach(docSnap => {
+                    if (docSnap.id === 'lastInputs') {
+                        const data = docSnap.data();
+                        if (data.sex) state.sex = data.sex;
+                        if (data.height) state.height = Number(data.height);
+                        if (data.weight) state.weight = Number(data.weight);
+                        if (data.waist) state.waist = Number(data.waist);
+                        if (data.neck) state.neck = Number(data.neck);
+                        if (data.hip) state.hip = Number(data.hip);
+                        if (data.age) state.age = Number(data.age);
+                        syncDOMFromState();
+                        calculateAll();
+                    }
+                });
+            }, (err) => console.error("Error preferencias:", err));
+        }
+
+        async function saveUserPreferences() {
+            if (!db || !currentUser) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'preferences', 'lastInputs');
+                await setDoc(docRef, {
+                    sex: state.sex,
+                    height: state.height,
+                    weight: state.weight,
+                    waist: state.waist,
+                    neck: state.neck,
+                    hip: state.hip,
+                    age: state.age,
+                    updatedAt: Date.now()
+                });
+            } catch (e) {
+                console.error("No se pudieron guardar las preferencias:", e);
+            }
+        }
+
+        // ==================== CÁLCULO EXACTO (MARINA EE.UU. E IMC) ====================
+        function calculateAll() {
+            const weight = Math.max(30, Number(state.weight) || 76);
+            const height = Math.max(100, Number(state.height) || 184);
+            const waist = Math.max(40, Number(state.waist) || 85);
+            const neck = Math.max(20, Number(state.neck) || 39);
+            const hip = Math.max(50, Number(state.hip) || 96);
+            const age = Math.max(10, Number(state.age) || 32);
+
+            // 1. Cálculo de IMC
+            const heightMeters = height / 100;
+            const bmi = weight / (heightMeters * heightMeters);
+
+            // 2. Cálculo de % Grasa Corporal
+            let bf = 0;
+            if (state.method === 'navy') {
+                if (state.sex === 'male') {
+                    // Fórmula Marina EE.UU. Hombres (Hodgdon & Beckett)
+                    const diff = Math.max(10, waist - neck);
+                    bf = 495 / (1.0324 - 0.19077 * Math.log10(diff) + 0.15456 * Math.log10(height)) - 450;
+                } else {
+                    // Fórmula Marina EE.UU. Mujeres
+                    const sumDiff = Math.max(20, waist + hip - neck);
+                    bf = 495 / (1.29579 - 0.35004 * Math.log10(sumDiff) + 0.22100 * Math.log10(height)) - 450;
+                }
+            } else {
+                // Fórmula por IMC (Deurenberg)
+                const sexFactor = state.sex === 'male' ? 1 : 0;
+                bf = (1.20 * bmi) + (0.23 * age) - (10.8 * sexFactor) - 5.4;
+            }
+
+            // Limitar a rangos fisiológicos lógicos
+            bf = Math.max(2.0, Math.min(60.0, bf));
+
+            const bfRounded = Number(bf.toFixed(1));
+            const fatMass = Number(((weight * bfRounded) / 100).toFixed(1));
+            const leanMass = Number((weight - fatMass).toFixed(1));
+            const bmiRounded = Number(bmi.toFixed(1));
+
+            // 3. Clasificación ACE
+            const ranges = ACE_RANGES[state.sex];
+            let activeCat = ranges[ranges.length - 1];
+            for (const r of ranges) {
+                if (bfRounded < r.max) {
+                    activeCat = r;
+                    break;
+                }
+            }
+
+            state.currentCalc = {
+                bf: bfRounded,
+                fatMass,
+                leanMass,
+                bmi: bmiRounded,
+                category: activeCat.label,
+                categoryId: activeCat.id,
+                color: activeCat.color
+            };
+
+            renderResultsUI();
+        }
+
+        function getBMICategory(bmi) {
+            if (bmi < 18.5) return { label: 'Bajo peso', color: 'text-sky-400' };
+            if (bmi < 25) return { label: 'Normal', color: 'text-emerald-500' };
+            if (bmi < 30) return { label: 'Sobrepeso', color: 'text-amber-500' };
+            return { label: 'Obesidad', color: 'text-rose-500' };
+        }
+
+        function renderResultsUI() {
+            const c = state.currentCalc;
+            document.getElementById('res-bf').textContent = `${c.bf.toFixed(1)}%`;
+            document.getElementById('res-fat-mass').textContent = `${c.fatMass.toFixed(1)} kg`;
+            document.getElementById('res-lean-mass').textContent = `${c.leanMass.toFixed(1)} kg`;
+            document.getElementById('res-bmi').textContent = c.bmi.toFixed(1);
+
+            const bmiCat = getBMICategory(c.bmi);
+            const bmiTag = document.getElementById('res-bmi-tag');
+            bmiTag.textContent = bmiCat.label;
+            bmiTag.className = `text-[9px] font-bold ${bmiCat.color}`;
+
+            // Color semántico del badge de categoría ACE
+            const colorMap = {
+                sky: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+                teal: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+                emerald: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30',
+                amber: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+                rose: 'bg-rose-500/15 text-rose-500 border-rose-500/30'
+            };
+            const dotMap = {
+                sky: 'bg-sky-400',
+                teal: 'bg-teal-400',
+                emerald: 'bg-emerald-500',
+                amber: 'bg-amber-400',
+                rose: 'bg-rose-500'
+            };
+
+            const badge = document.getElementById('res-category-badge');
+            badge.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${colorMap[c.color]}`;
+            badge.innerHTML = `<span class="w-2 h-2 rounded-full ${dotMap[c.color]}"></span> ${c.category.toUpperCase()}`;
+
+            // Comparativa con el último registro guardado
+            const diffEl = document.getElementById('res-diff-last');
+            if (state.records.length > 0) {
+                const last = state.records[0];
+                const diff = Number((c.bf - last.bf).toFixed(1));
+                const sign = diff > 0 ? '+' : '';
+                const diffColor = diff <= 0 ? 'text-emerald-500' : 'text-amber-500';
+                diffEl.innerHTML = `vs último: <strong class="${diffColor}">${sign}${diff}%</strong>`;
+            } else {
+                diffEl.textContent = 'Listo para guardar';
+            }
+
+            // Actualizar marcador en barra ACE
+            const minScale = state.sex === 'male' ? 2 : 10;
+            const maxScale = state.sex === 'male' ? 32 : 40;
+            const pct = Math.max(3, Math.min(97, ((c.bf - minScale) / (maxScale - minScale)) * 100));
+            document.getElementById('ace-marker').style.left = `${pct}%`;
+            document.getElementById('ace-sex-label').textContent = state.sex === 'male' ? 'Hombres' : 'Mujeres';
+
+            // Pintar tarjetas de rangos de referencia ACE
+            const ranges = ACE_RANGES[state.sex];
+            const listContainer = document.getElementById('ace-ranges-list');
+            listContainer.innerHTML = ranges.map(r => {
+                const isActive = r.id === c.categoryId;
+                return `
+                    <div class="p-1.5 rounded-xl border transition-all ${isActive ? 'bg-slate-100 dark:bg-ios-card2 border-ios-blue shadow-sm scale-[1.03]' : 'border-transparent opacity-65'}">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full ${dotMap[r.color]}"></span>
+                            <span class="text-[9px] font-bold truncate">${r.label}</span>
+                        </div>
+                        <span class="text-[10px] font-extrabold block mt-0.5 tabular-nums">${r.rangeText}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Botón guardar preview
+            document.getElementById('btn-save-preview').textContent = `${c.bf.toFixed(1)}% · ${c.bmi.toFixed(1)} IMC`;
+        }
+
+        // ==================== INTERACCIONES DE FORMULARIO ====================
+        window.setMethod = function(method) {
+            state.method = method;
+            const btnNavy = document.getElementById('btn-method-navy');
+            const btnBmi = document.getElementById('btn-method-bmi');
+            const navyFields = document.getElementById('navy-fields');
+            const bmiAgeField = document.getElementById('bmi-age-field');
+            const badge = document.getElementById('method-precision-badge');
+            const helper = document.getElementById('method-helper-text');
+
+            if (method === 'navy') {
+                btnNavy.className = "py-2 px-3 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-ios-card2 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5";
+                btnBmi.className = "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-slate-500 dark:text-ios-gray flex items-center justify-center gap-1.5";
+                navyFields.classList.remove('hidden');
+                bmiAgeField.classList.add('hidden');
+                badge.textContent = "MÁS PRECISO (±3-4%)";
+                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-ios-blue/15 text-ios-blue";
+                helper.innerHTML = `Mide con cinta métrica: <strong>cintura</strong> al nivel del ombligo y <strong>cuello</strong> justo debajo de la laringe.`;
+            } else {
+                btnBmi.className = "py-2 px-3 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-ios-card2 text-slate-900 dark:text-white shadow-sm flex items-center justify-center gap-1.5";
+                btnNavy.className = "py-2 px-3 rounded-lg text-xs font-semibold transition-all text-slate-500 dark:text-ios-gray flex items-center justify-center gap-1.5";
+                navyFields.classList.add('hidden');
+                bmiAgeField.classList.remove('hidden');
+                badge.textContent = "ORIENTATIVO (±5-8%)";
+                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500";
+                helper.innerHTML = `Estimación rápida basada en tu <strong>IMC</strong> y <strong>Edad</strong> sin necesidad de cinta métrica.`;
+            }
+            calculateAll();
+        };
+
+        window.setSex = function(sex) {
+            state.sex = sex;
+            const btnMale = document.getElementById('btn-sex-male');
+            const btnFemale = document.getElementById('btn-sex-female');
+            const hipField = document.getElementById('hip-field');
+
+            if (sex === 'male') {
+                btnMale.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-2 bg-ios-blue text-white border-ios-blue shadow-sm";
+                btnFemale.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-2 bg-slate-50 dark:bg-ios-card2 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-ios-border";
+                hipField.classList.add('hidden');
+            } else {
+                btnFemale.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-2 bg-ios-blue text-white border-ios-blue shadow-sm";
+                btnMale.className = "py-2.5 px-4 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-2 bg-slate-50 dark:bg-ios-card2 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-ios-border";
+                hipField.classList.remove('hidden');
+            }
+            calculateAll();
+        };
+
+        window.syncInput = function(field, value) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+                state[field] = num;
+            }
+            const inputEl = document.getElementById(`input-${field}`);
+            const sliderEl = document.getElementById(`slider-${field}`);
+            if (inputEl && document.activeElement !== inputEl) inputEl.value = value;
+            if (sliderEl && document.activeElement !== sliderEl) sliderEl.value = value;
+            calculateAll();
+        };
+
+        window.stepValue = function(field, delta) {
+            const current = Number(state[field]) || 0;
+            const next = Number((current + delta).toFixed(1));
+            state[field] = next;
+            const inputEl = document.getElementById(`input-${field}`);
+            const sliderEl = document.getElementById(`slider-${field}`);
+            if (inputEl) inputEl.value = next;
+            if (sliderEl) sliderEl.value = next;
+            calculateAll();
+        };
+
+        function syncDOMFromState() {
+            ['weight', 'height', 'waist', 'neck', 'hip', 'age'].forEach(field => {
+                const inputEl = document.getElementById(`input-${field}`);
+                const sliderEl = document.getElementById(`slider-${field}`);
+                if (inputEl) inputEl.value = state[field];
+                if (sliderEl) sliderEl.value = state[field];
+            });
+            window.setSex(state.sex);
+        }
+
+        // ==================== GUARDAR Y GESTIONAR MEDICIONES ====================
+        window.setTodayDate = function() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('record-date').value = `${yyyy}-${mm}-${dd}`;
+        };
+
+        window.saveMeasurement = async function() {
+            const dateInput = document.getElementById('record-date').value;
+            const noteInput = document.getElementById('record-note').value.trim();
+            const dateStr = dateInput || new Date().toISOString().split('T')[0];
+
+            const newRecord = {
+                id: crypto.randomUUID(),
+                date: dateStr,
+                createdAt: Date.now(),
+                method: state.method,
+                sex: state.sex,
+                weight: Number(state.weight),
+                height: Number(state.height),
+                waist: Number(state.waist),
+                neck: Number(state.neck),
+                hip: state.sex === 'female' ? Number(state.hip) : null,
+                bf: state.currentCalc.bf,
+                bmi: state.currentCalc.bmi,
+                fatMass: state.currentCalc.fatMass,
+                leanMass: state.currentCalc.leanMass,
+                category: state.currentCalc.category,
+                color: state.currentCalc.color,
+                note: noteInput
+            };
+
+            // Actualizar estado inmediato
+            state.records.unshift(newRecord);
+            state.records.sort((a, b) => {
+                if (b.date !== a.date) return b.date.localeCompare(a.date);
+                return (b.createdAt || 0) - (a.createdAt || 0);
+            });
+
+            document.getElementById('record-note').value = '';
+            updateHistoryUI();
+            calculateAll();
+            showToast(`Guardado: ${newRecord.bf}% GC (${formatDateShort(newRecord.date)})`);
+
+            // Persistir en Firestore si está activo
+            if (db && currentUser) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'measurements', newRecord.id);
+                    await setDoc(docRef, newRecord);
+                    await saveUserPreferences();
+                } catch (e) {
+                    console.error("Error guardando en nube:", e);
+                }
+            }
+        };
+
+        let pendingDeleteId = null;
+        window.askDeleteRecord = function(id) {
+            pendingDeleteId = id;
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeDeleteModal = function() {
+            pendingDeleteId = null;
+            const modal = document.getElementById('delete-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+            if (!pendingDeleteId) return;
+            const idToRemove = pendingDeleteId;
+            closeDeleteModal();
+
+            state.records = state.records.filter(r => r.id !== idToRemove);
+            updateHistoryUI();
+            calculateAll();
+            showToast('Registro eliminado');
+
+            if (db && currentUser) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'measurements', idToRemove);
+                    await deleteDoc(docRef);
+                } catch (e) {
+                    console.error("Error eliminando documento:", e);
+                }
+            }
+        });
+
+        // ==================== HISTORIAL Y GRÁFICA SVG ====================
+        window.setChartMetric = function(metric) {
+            state.chartMetric = metric;
+            ['bf', 'bmi', 'weight'].forEach(m => {
+                const btn = document.getElementById(`chart-btn-${m}`);
+                if (m === metric) {
+                    btn.className = "px-2.5 py-1 rounded-lg bg-white dark:bg-ios-card2 text-ios-blue shadow-sm transition";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-lg text-slate-500 dark:text-ios-gray transition";
+                }
+            });
+            renderChart();
+        };
+
+        function updateHistoryUI() {
+            const count = state.records.length;
+            const navBadge = document.getElementById('nav-badge-count');
+            if (count > 0) {
+                navBadge.textContent = count;
+                navBadge.classList.remove('hidden');
+            } else {
+                navBadge.classList.add('hidden');
+            }
+
+            // Actualizar tarjetas superiores de resumen
+            const lastBfEl = document.getElementById('stat-last-bf');
+            const diffBfEl = document.getElementById('stat-diff-bf');
+            const lastBmiEl = document.getElementById('stat-last-bmi');
+            const diffBmiEl = document.getElementById('stat-diff-bmi');
+            const lastWeightEl = document.getElementById('stat-last-weight');
+            const totalRecEl = document.getElementById('stat-total-records');
+
+            totalRecEl.textContent = `${count} ${count === 1 ? 'registro' : 'registros'}`;
+
+            if (count > 0) {
+                const latest = state.records[0];
+                lastBfEl.textContent = `${latest.bf.toFixed(1)}%`;
+                lastBmiEl.textContent = latest.bmi.toFixed(1);
+                lastWeightEl.textContent = `${latest.weight} kg`;
+
+                if (count > 1) {
+                    const prev = state.records[1];
+                    const dBf = Number((latest.bf - prev.bf).toFixed(1));
+                    const dBmi = Number((latest.bmi - prev.bmi).toFixed(1));
+                    diffBfEl.textContent = `${dBf > 0 ? '+' : ''}${dBf}% vs ant.`;
+                    diffBfEl.className = `text-[10px] font-semibold block mt-0.5 ${dBf <= 0 ? 'text-emerald-500' : 'text-amber-500'}`;
+                    diffBmiEl.textContent = `${dBmi > 0 ? '+' : ''}${dBmi} vs ant.`;
+                    diffBmiEl.className = `text-[10px] font-semibold block mt-0.5 ${dBmi <= 0 ? 'text-emerald-500' : 'text-amber-500'}`;
+                } else {
+                    diffBfEl.textContent = latest.category;
+                    diffBfEl.className = 'text-[10px] font-semibold text-emerald-500 block mt-0.5';
+                    diffBmiEl.textContent = getBMICategory(latest.bmi).label;
+                    diffBmiEl.className = 'text-[10px] font-semibold text-ios-blue block mt-0.5';
+                }
+            } else {
+                lastBfEl.textContent = '—';
+                diffBfEl.textContent = 'Sin datos';
+                lastBmiEl.textContent = '—';
+                diffBmiEl.textContent = 'Sin datos';
+                lastWeightEl.textContent = '—';
+            }
+
+            renderChart();
+            renderHistoryList();
+        }
+
+        function renderChart() {
+            const container = document.getElementById('chart-container');
+            if (state.records.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center space-y-1.5 p-4">
+                        <i class="ph ph-chart-line-up text-3xl text-slate-300 dark:text-ios-gray"></i>
+                        <p class="text-xs font-semibold text-slate-400 dark:text-ios-gray">Guarda tu primera medición para ver la gráfica de evolución</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Tomar hasta las últimas 10 mediciones en orden cronológico (antiguo -> reciente)
+            const chronological = [...state.records].slice(0, 10).reverse();
+            const metric = state.chartMetric;
+            const unit = metric === 'bf' ? '%' : (metric === 'weight' ? 'kg' : '');
+            const strokeColor = metric === 'bf' ? '#30D158' : (metric === 'bmi' ? '#0A84FF' : '#BF5AF2');
+
+            const values = chronological.map(r => Number(r[metric]));
+            let minVal = Math.min(...values);
+            let maxVal = Math.max(...values);
+            if (minVal === maxVal) {
+                minVal -= 1;
+                maxVal += 1;
+            } else {
+                const pad = (maxVal - minVal) * 0.2;
+                minVal -= pad;
+                maxVal += pad;
+            }
+
+            const width = 340;
+            const height = 145;
+            const padX = 28;
+            const padY = 22;
+
+            const points = chronological.map((r, idx) => {
+                const x = chronological.length === 1
+                    ? width / 2
+                    : padX + (idx / (chronological.length - 1)) * (width - padX * 2);
+                const y = height - padY - ((Number(r[metric]) - minVal) / (maxVal - minVal)) * (height - padY * 2);
+                return { x, y, val: Number(r[metric]), date: formatDateShort(r.date) };
+            });
+
+            const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+            const areaPoints = `${points[0].x},${height - padY} ${polylinePoints} ${points[points.length - 1].x},${height - padY}`;
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="w-full h-full overflow-visible">
+                    <defs>
+                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="${strokeColor}" stop-opacity="0.32"/>
+                            <stop offset="100%" stop-color="${strokeColor}" stop-opacity="0.0"/>
+                        </linearGradient>
+                    </defs>
+                    ${points.length > 1 ? `<polygon points="${areaPoints}" fill="url(#chartGrad)" />` : ''}
+                    ${points.length > 1 ? `<polyline fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${polylinePoints}" />` : ''}
+                    ${points.map(p => `
+                        <g>
+                            <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="${strokeColor}" stroke="#1C1C1E" stroke-width="2" />
+                            <text x="${p.x}" y="${p.y - 9}" text-anchor="middle" fill="currentColor" class="text-[9px] font-bold">${p.val.toFixed(1)}${unit}</text>
+                            <text x="${p.x}" y="${height - 5}" text-anchor="middle" fill="#8E8E93" class="text-[8px] font-medium">${p.date}</text>
+                        </g>
+                    `).join('')}
+                </svg>
+            `;
+        }
+
+        function renderHistoryList() {
+            const listEl = document.getElementById('history-list');
+            if (state.records.length === 0) {
+                listEl.innerHTML = `
+                    <div class="bg-white dark:bg-ios-card rounded-3xl p-6 text-center border border-slate-200/80 dark:border-ios-border/60 space-y-2">
+                        <p class="text-xs text-slate-500 dark:text-ios-gray">Todavía no hay mediciones guardadas.</p>
+                        <button onclick="loadDemoHistory()" class="text-xs font-semibold text-ios-blue underline">Cargar registros de ejemplo</button>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = state.records.map((rec, index) => {
+                const prev = state.records[index + 1];
+                let diffBadge = '';
+                if (prev) {
+                    const diff = Number((rec.bf - prev.bf).toFixed(1));
+                    const sign = diff > 0 ? '+' : '';
+                    const cls = diff <= 0
+                        ? 'text-emerald-500 bg-emerald-500/10'
+                        : 'text-amber-500 bg-amber-500/10';
+                    diffBadge = `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold ${cls}">${sign}${diff}%</span>`;
+                }
+
+                return `
+                    <div class="bg-white dark:bg-ios-card p-4 rounded-2xl border border-slate-200/80 dark:border-ios-border/60 shadow-sm flex items-center justify-between gap-3">
+                        <div class="space-y-1 flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-bold text-slate-800 dark:text-white">${formatDateReadable(rec.date)}</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-ios-blue/15 text-ios-blue">${rec.category}</span>
+                                ${diffBadge}
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-ios-gray tabular-nums">
+                                <span><strong class="text-slate-700 dark:text-slate-200">${rec.weight}</strong> kg</span>
+                                <span>•</span>
+                                <span>IMC <strong class="text-slate-700 dark:text-slate-200">${rec.bmi.toFixed(1)}</strong></span>
+                                ${rec.method === 'navy' ? `<span>•</span><span>Cintura ${rec.waist} cm</span>` : ''}
+                            </div>
+                            ${rec.note ? `<p class="text-[11px] text-slate-400 dark:text-ios-gray italic truncate">"${rec.note}"</p>` : ''}
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="text-right">
+                                <span class="text-xl font-extrabold tabular-nums block text-emerald-500">${rec.bf.toFixed(1)}%</span>
+                                <span class="text-[10px] text-slate-400 dark:text-ios-gray block tabular-nums">Magra ${rec.leanMass}kg</span>
+                            </div>
+                            <button onclick="askDeleteRecord('${rec.id}')" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-ios-card2 text-slate-400 hover:text-rose-500 flex items-center justify-center active:scale-90 transition" title="Eliminar">
+                                <i class="ph ph-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==================== UTILIDADES, NAVEGACIÓN Y EXPORTACIÓN ====================
+        window.switchTab = function(tab) {
+            ['calc', 'history', 'guide'].forEach(t => {
+                const mainEl = document.getElementById(`tab-${t}`);
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (t === tab) {
+                    mainEl.classList.remove('hidden');
+                    navBtn.className = "flex flex-col items-center justify-center py-1 text-ios-blue transition relative";
+                } else {
+                    mainEl.classList.add('hidden');
+                    navBtn.className = "flex flex-col items-center justify-center py-1 text-slate-400 dark:text-ios-gray transition relative";
+                }
+            });
+            if (tab === 'history') {
+                updateHistoryUI();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.toggleTheme = function() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'ph ph-moon text-lg';
+            } else {
+                html.classList.add('dark');
+                icon.className = 'ph ph-sun text-lg';
+            }
+        };
+
+        window.openQuickGuideModal = function() {
+            const m = document.getElementById('guide-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        };
+
+        window.closeQuickGuideModal = function() {
+            const m = document.getElementById('guide-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        };
+
+        window.exportCSV = function() {
+            if (state.records.length === 0) {
+                showToast('No hay registros para exportar');
+                return;
+            }
+            const headers = ['Fecha', 'Porcentaje_Grasa', 'IMC', 'Peso_kg', 'Masa_Grasa_kg', 'Masa_Magra_kg', 'Cintura_cm', 'Cuello_cm', 'Categoria_ACE', 'Nota'];
+            const rows = state.records.map(r => [
+                r.date,
+                r.bf,
+                r.bmi,
+                r.weight,
+                r.fatMass,
+                r.leanMass,
+                r.waist || '',
+                r.neck || '',
+                `"${r.category}"`,
+                `"${(r.note || '').replace(/"/g, '""')}"`
+            ]);
+            const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bodytrack_historial_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Archivo CSV descargado');
+        };
+
+        window.loadDemoHistory = async function() {
+            const today = new Date();
+            const demoEntries = [
+                { daysAgo: 28, weight: 78.2, waist: 88.0, neck: 39.0, bf: 16.9, bmi: 23.1, fatMass: 13.2, leanMass: 65.0, category: 'En forma', note: 'Inicio plan' },
+                { daysAgo: 21, weight: 77.5, waist: 87.0, neck: 39.0, bf: 16.1, bmi: 22.9, fatMass: 12.5, leanMass: 65.0, category: 'En forma', note: 'Semana 1' },
+                { daysAgo: 14, weight: 76.8, waist: 86.0, neck: 39.0, bf: 15.4, bmi: 22.7, fatMass: 11.8, leanMass: 65.0, category: 'En forma', note: 'Semana 2' },
+                { daysAgo: 0,  weight: 76.0, waist: 85.0, neck: 39.0, bf: 14.7, bmi: 22.4, fatMass: 11.2, leanMass: 64.8, category: 'En forma', note: 'Medición actual' }
+            ];
+
+            for (const item of demoEntries) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - item.daysAgo);
+                const dateStr = d.toISOString().split('T')[0];
+                const rec = {
+                    id: crypto.randomUUID(),
+                    date: dateStr,
+                    createdAt: d.getTime(),
+                    method: 'navy',
+                    sex: 'male',
+                    weight: item.weight,
+                    height: 184,
+                    waist: item.waist,
+                    neck: item.neck,
+                    hip: null,
+                    bf: item.bf,
+                    bmi: item.bmi,
+                    fatMass: item.fatMass,
+                    leanMass: item.leanMass,
+                    category: item.category,
+                    color: 'emerald',
+                    note: item.note
+                };
+                state.records.push(rec);
+                if (db && currentUser) {
+                    try {
+                        const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'measurements', rec.id);
+                        await setDoc(docRef, rec);
+                    } catch (e) {}
+                }
+            }
+
+            state.records.sort((a, b) => b.date.localeCompare(a.date));
+            updateHistoryUI();
+            calculateAll();
+            switchTab('history');
+            showToast('Historial de ejemplo cargado');
+        };
+
+        function formatDateShort(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}`;
+        }
+
+        function formatDateReadable(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const mIdx = parseInt(parts[1], 10) - 1;
+            return `${parseInt(parts[2], 10)} ${months[mIdx] || parts[1]} ${parts[0]}`;
+        }
+
+        let toastTimeout = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-msg');
+            msgEl.textContent = message;
+            toast.classList.remove('opacity-0', '-translate-y-2');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 2600);
+        }
+
+        // Inicialización al cargar la ventana
+        window.addEventListener('DOMContentLoaded', () => {
+            setTodayDate();
+            calculateAll();
+            updateHistoryUI();
+            initCloudStorage();
+        });
+    </script>
+</body>
+</html>
