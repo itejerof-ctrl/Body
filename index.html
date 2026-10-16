@@ -30,7 +30,6 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
       overscroll-behavior-y: none;
     }
-    /* Ajuste específico para salvar la Dynamic Island / Notch en iPhone */
     .ios-header {
       padding-top: calc(var(--safe-top) + 12px);
       background: rgba(12, 12, 14, 0.88);
@@ -76,7 +75,7 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between pb-28">
 
-  <!-- CABECERA FIJA CON ESPACIO PARA LA BARRA DE ESTADO DEL IPHONE -->
+  <!-- CABECERA FIJA CON ESTADO DE GOOGLE SHEETS -->
   <header class="ios-header sticky top-0 z-40 px-4 pb-3 border-b border-white/10">
     <div class="max-w-md mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -88,10 +87,16 @@
           <p class="text-xs text-zinc-400">Grasa Corporal & IMC</p>
         </div>
       </div>
-      <button onclick="switchTab('history')" class="px-3 py-1.5 rounded-full bg-zinc-800/90 border border-white/10 text-xs font-medium text-zinc-200 flex items-center gap-1.5 active:scale-95 transition">
-        <i class="fa-solid fa-clock-rotate-left text-blue-400"></i>
-        <span id="headerCount">0 reg.</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="switchTab('cloud')" id="cloudStatusBtn" class="px-2.5 py-1.5 rounded-full bg-zinc-800/90 border border-white/10 text-xs font-medium text-zinc-400 flex items-center gap-1.5 active:scale-95 transition">
+          <i id="cloudStatusIcon" class="fa-solid fa-cloud"></i>
+          <span id="cloudStatusText">Local</span>
+        </button>
+        <button onclick="switchTab('history')" class="px-3 py-1.5 rounded-full bg-zinc-800/90 border border-white/10 text-xs font-medium text-zinc-200 flex items-center gap-1.5 active:scale-95 transition">
+          <i class="fa-solid fa-clock-rotate-left text-blue-400"></i>
+          <span id="headerCount">0</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -122,7 +127,7 @@
         </p>
       </div>
 
-      <!-- Tarjeta Principal de Resultados (Compactada sin hueco superior) -->
+      <!-- Tarjeta Principal de Resultados -->
       <div class="ios-card p-4 relative overflow-hidden">
         <div class="flex items-start justify-between">
           <div>
@@ -172,14 +177,11 @@
             <div class="w-[22%] bg-amber-400"></div>
             <div class="w-[18%] bg-rose-500"></div>
           </div>
-          <!-- Marcador de posición -->
           <div class="relative w-full h-3 -mt-3 pointer-events-none">
             <div id="aceMarker" class="absolute top-0 w-3.5 h-3.5 rounded-full bg-white border-2 border-black shadow-md transition-all duration-200" style="left: calc(48% - 7px);"></div>
           </div>
 
-          <div class="grid grid-cols-5 gap-1 text-center mt-2" id="aceLegendGrid">
-            <!-- Rellenado dinámico según sexo -->
-          </div>
+          <div class="grid grid-cols-5 gap-1 text-center mt-2" id="aceLegendGrid"></div>
         </div>
       </div>
 
@@ -230,7 +232,7 @@
           <input id="rngHeight" type="range" min="140" max="220" step="1" value="184" oninput="syncInput('height', this.value)">
         </div>
 
-        <!-- Edad (Solo para método IMC) -->
+        <!-- Edad -->
         <div id="fieldAge" class="hidden">
           <div class="flex justify-between items-center mb-1.5">
             <label class="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
@@ -278,7 +280,7 @@
           <input id="rngNeck" type="range" min="28" max="60" step="0.5" value="39" oninput="syncInput('neck', this.value)">
         </div>
 
-        <!-- Cadera (Solo Mujeres en Marina EE.UU.) -->
+        <!-- Cadera -->
         <div id="fieldHip" class="hidden">
           <div class="flex justify-between items-center mb-1.5">
             <label class="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
@@ -307,7 +309,7 @@
             <input id="logNote" type="text" placeholder="Ej. En ayunas" class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600">
           </div>
         </div>
-        <button onclick="saveMeasurement()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-600/30 active:scale-[0.98] transition flex items-center justify-center gap-2">
+        <button id="btnSaveMeasure" onclick="saveMeasurement()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-600/30 active:scale-[0.98] transition flex items-center justify-center gap-2">
           <i class="fa-solid fa-floppy-disk"></i> Registrar Medición
         </button>
       </div>
@@ -319,7 +321,7 @@
         <div class="flex items-center justify-between mb-3">
           <div>
             <h2 class="text-sm font-bold">Curva de Evolución</h2>
-            <p class="text-[11px] text-zinc-400">Histórico guardado en este iPhone</p>
+            <p class="text-[11px] text-zinc-400" id="historySubtitle">Histórico sincronizado</p>
           </div>
           <div class="flex bg-black/60 p-0.5 rounded-lg border border-white/10 text-[11px]">
             <button id="chartBtnBf" onclick="setChartMetric('bf')" class="px-2.5 py-1 rounded-md bg-zinc-800 text-white font-semibold">% Grasa</button>
@@ -327,19 +329,17 @@
             <button id="chartBtnBmi" onclick="setChartMetric('bmi')" class="px-2.5 py-1 rounded-md text-zinc-400 font-semibold">IMC</button>
           </div>
         </div>
-        <div id="chartContainer" class="h-44 w-full flex items-center justify-center bg-black/40 rounded-xl border border-white/5 p-2">
-          <!-- SVG dinámico -->
-        </div>
+        <div id="chartContainer" class="h-44 w-full flex items-center justify-center bg-black/40 rounded-xl border border-white/5 p-2"></div>
       </div>
 
       <div class="flex items-center justify-between px-1">
         <span class="text-xs font-bold uppercase tracking-wider text-zinc-400">Registros Guardados</span>
-        <div class="flex gap-2">
+        <div class="flex gap-1.5">
+          <button onclick="syncFromGoogleSheet(true)" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+            <i class="fa-solid fa-arrows-rotate"></i> Sync
+          </button>
           <button onclick="exportCSV()" class="text-xs px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-300 border border-white/10 flex items-center gap-1">
             <i class="fa-solid fa-file-arrow-down text-blue-400"></i> CSV
-          </button>
-          <button onclick="clearAllHistory()" class="text-xs px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center gap-1">
-            <i class="fa-solid fa-trash-can"></i> Borrar
           </button>
         </div>
       </div>
@@ -347,7 +347,44 @@
       <div id="historyList" class="space-y-2.5"></div>
     </section>
 
-    <!-- PESTAÑA 3: GUÍA ACE -->
+    <!-- PESTAÑA 3: CONEXIÓN GOOGLE SHEETS -->
+    <section id="tab-cloud" class="hidden space-y-3.5">
+      <div class="ios-card p-4 space-y-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <i class="fa-solid fa-table"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold">Conexión con Google Sheets</h2>
+            <p class="text-[11px] text-zinc-400">Guarda y sincroniza tus datos en tu hoja de cálculo</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[10px] font-semibold uppercase text-zinc-400 block mb-1">URL de Web App (Apps Script)</label>
+          <input id="sheetUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="saveSheetUrl()" class="py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-link"></i> Guardar URL
+          </button>
+          <button onclick="syncFromGoogleSheet(true)" class="py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-cloud-arrow-down"></i> Descargar de Hoja
+          </button>
+        </div>
+
+        <button onclick="pushLocalToSheet()" class="w-full py-2.5 rounded-xl bg-zinc-800 border border-white/10 text-zinc-200 font-semibold text-xs active:scale-95 transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-cloud-arrow-up text-blue-400"></i> Subir mis registros actuales a la Hoja
+        </button>
+
+        <p id="cloudFeedback" class="text-[11px] text-zinc-400 text-center pt-1">
+          Pega la URL terminada en <code>/exec</code> de tu Google Apps Script.
+        </p>
+      </div>
+    </section>
+
+    <!-- PESTAÑA 4: GUÍA ACE -->
     <section id="tab-guide" class="hidden space-y-3.5">
       <div class="ios-card p-4 space-y-2.5">
         <h2 class="text-sm font-bold flex items-center gap-2 text-blue-400">
@@ -385,9 +422,9 @@
 
   </main>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR ESTILO iOS -->
-  <nav class="ios-tabbar fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 px-6 pt-2">
-    <div class="max-w-md mx-auto grid grid-cols-3 gap-2">
+  <!-- BARRA DE NAVEGACIÓN INFERIOR (4 PESTAÑAS) -->
+  <nav class="ios-tabbar fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 px-4 pt-2">
+    <div class="max-w-md mx-auto grid grid-cols-4 gap-1">
       <button id="nav-calc" onclick="switchTab('calc')" class="flex flex-col items-center py-1 text-blue-500">
         <i class="fa-solid fa-calculator text-lg"></i>
         <span class="text-[10px] font-semibold mt-1">Calcular</span>
@@ -395,6 +432,10 @@
       <button id="nav-history" onclick="switchTab('history')" class="flex flex-col items-center py-1 text-zinc-500">
         <i class="fa-solid fa-chart-line text-lg"></i>
         <span class="text-[10px] font-semibold mt-1">Evolución</span>
+      </button>
+      <button id="nav-cloud" onclick="switchTab('cloud')" class="flex flex-col items-center py-1 text-zinc-500">
+        <i class="fa-solid fa-table text-lg"></i>
+        <span class="text-[10px] font-semibold mt-1">Sheets</span>
       </button>
       <button id="nav-guide" onclick="switchTab('guide')" class="flex flex-col items-center py-1 text-zinc-500">
         <i class="fa-solid fa-book-open text-lg"></i>
@@ -405,6 +446,8 @@
 
   <script>
     const STORAGE_KEY = 'bodytrack_ios_records_v1';
+    const SHEET_URL_KEY = 'bodytrack_google_sheet_url';
+
     let state = {
       method: 'navy',
       sex: 'male',
@@ -434,9 +477,106 @@
       ]
     };
 
+    function getSheetUrl() {
+      return (localStorage.getItem(SHEET_URL_KEY) || '').trim();
+    }
+
+    function updateCloudBadge() {
+      const url = getSheetUrl();
+      const icon = document.getElementById('cloudStatusIcon');
+      const text = document.getElementById('cloudStatusText');
+      const input = document.getElementById('sheetUrlInput');
+      if (input && url) input.value = url;
+
+      if (url) {
+        icon.className = 'fa-solid fa-cloud-check text-emerald-400';
+        text.textContent = 'Sheets';
+        text.className = 'text-emerald-400 font-semibold';
+      } else {
+        icon.className = 'fa-solid fa-cloud text-zinc-400';
+        text.textContent = 'Local';
+        text.className = 'text-zinc-400';
+      }
+    }
+
+    function saveSheetUrl() {
+      const val = document.getElementById('sheetUrlInput').value.trim();
+      localStorage.setItem(SHEET_URL_KEY, val);
+      updateCloudBadge();
+      const fb = document.getElementById('cloudFeedback');
+      if (val) {
+        fb.textContent = '¡URL guardada! Sincronizando con tu Google Sheet...';
+        fb.className = 'text-[11px] text-emerald-400 text-center pt-1 font-semibold';
+        syncFromGoogleSheet(true);
+      } else {
+        fb.textContent = 'Se ha desconectado Google Sheets. Guardado solo en iPhone.';
+        fb.className = 'text-[11px] text-amber-400 text-center pt-1';
+      }
+    }
+
+    async function syncFromGoogleSheet(showAlert = false) {
+      const url = getSheetUrl();
+      if (!url) {
+        if (showAlert) switchTab('cloud');
+        return;
+      }
+      const fb = document.getElementById('cloudFeedback');
+      try {
+        if (fb) fb.textContent = 'Sincronizando desde Google Sheets...';
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && Array.isArray(data.records)) {
+          const sorted = data.records.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+          renderHistory();
+          if (fb) {
+            fb.textContent = `¡Sincronizado! ${sorted.length} registros cargados desde Google Sheets.`;
+            fb.className = 'text-[11px] text-emerald-400 text-center pt-1 font-semibold';
+          }
+        }
+      } catch (err) {
+        if (fb) {
+          fb.textContent = 'No se pudo leer la hoja. Revisa que el acceso sea "Cualquier usuario".';
+          fb.className = 'text-[11px] text-rose-400 text-center pt-1';
+        }
+      }
+    }
+
+    async function pushLocalToSheet() {
+      const url = getSheetUrl();
+      const fb = document.getElementById('cloudFeedback');
+      if (!url) {
+        fb.textContent = 'Primero pega y guarda tu URL de Google Apps Script.';
+        fb.className = 'text-[11px] text-amber-400 text-center pt-1';
+        return;
+      }
+      const records = getRecords();
+      if (!records.length) {
+        fb.textContent = 'No tienes registros locales para subir.';
+        return;
+      }
+      fb.textContent = `Subiendo ${records.length} registros a Google Sheets...`;
+      try {
+        for (const entry of [...records].reverse()) {
+          await fetch(url, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'add', entry })
+          });
+        }
+        fb.textContent = '¡Todos los registros locales se han enviado a tu Google Sheet!';
+        fb.className = 'text-[11px] text-emerald-400 text-center pt-1 font-semibold';
+      } catch (e) {
+        fb.textContent = 'Error al subir registros a la hoja.';
+        fb.className = 'text-[11px] text-rose-400 text-center pt-1';
+      }
+    }
+
     function initApp() {
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('logDate').value = today;
+      updateCloudBadge();
 
       const records = getRecords();
       if (records.length > 0) {
@@ -452,6 +592,10 @@
       setSex(state.sex);
       calculateAll();
       renderHistory();
+
+      if (getSheetUrl()) {
+        syncFromGoogleSheet(false);
+      }
     }
 
     function syncAllInputsFromState() {
@@ -586,7 +730,7 @@
       }
     }
 
-    function saveMeasurement() {
+    async function saveMeasurement() {
       const metrics = calculateAll();
       const date = document.getElementById('logDate').value || new Date().toISOString().split('T')[0];
       const note = document.getElementById('logNote').value.trim();
@@ -615,26 +759,48 @@
 
       document.getElementById('logNote').value = '';
       const status = document.getElementById('saveStatusText');
-      status.textContent = '¡Guardado en iPhone!';
+      const sheetUrl = getSheetUrl();
+
+      status.textContent = sheetUrl ? 'Guardando en Google Sheets...' : '¡Guardado en iPhone!';
       status.className = 'block text-[11px] text-emerald-400 font-semibold mt-1';
+      renderHistory();
+
+      if (sheetUrl) {
+        try {
+          await fetch(sheetUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'add', entry })
+          });
+          status.textContent = '¡Guardado en iPhone y Sheets!';
+        } catch (err) {
+          status.textContent = 'Guardado local (sin red)';
+        }
+      }
+
       setTimeout(() => {
         status.textContent = 'Listo para guardar';
         status.className = 'block text-[11px] text-zinc-500 mt-1';
-      }, 2500);
-
-      renderHistory();
+      }, 2800);
     }
 
-    function deleteRecord(id) {
+    async function deleteRecord(id) {
       const records = getRecords().filter(r => r.id !== id);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
       renderHistory();
-    }
 
-    function clearAllHistory() {
-      if (!confirm('¿Seguro que quieres borrar todas las mediciones guardadas?')) return;
-      localStorage.removeItem(STORAGE_KEY);
-      renderHistory();
+      const sheetUrl = getSheetUrl();
+      if (sheetUrl) {
+        try {
+          await fetch(sheetUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'delete', id })
+          });
+        } catch (e) {}
+      }
     }
 
     function setChartMetric(m) {
@@ -651,7 +817,7 @@
 
     function renderHistory() {
       const records = getRecords();
-      document.getElementById('headerCount').textContent = `${records.length} reg.`;
+      document.getElementById('headerCount').textContent = `${records.length}`;
 
       const listEl = document.getElementById('historyList');
       if (records.length === 0) {
@@ -743,12 +909,14 @@
     }
 
     function switchTab(tab) {
-      ['calc', 'history', 'guide'].forEach(t => {
+      ['calc', 'history', 'cloud', 'guide'].forEach(t => {
         document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
         const navBtn = document.getElementById('nav-' + t);
-        navBtn.className = t === tab
-          ? 'flex flex-col items-center py-1 text-blue-500'
-          : 'flex flex-col items-center py-1 text-zinc-500';
+        if (navBtn) {
+          navBtn.className = t === tab
+            ? 'flex flex-col items-center py-1 text-blue-500'
+            : 'flex flex-col items-center py-1 text-zinc-500';
+        }
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
